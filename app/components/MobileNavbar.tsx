@@ -27,13 +27,6 @@ export default function MobileNavbar() {
     setMobile(isMobile);
   }, []);
 
-  if (isSSR)
-    return (
-      <html>
-        <head />
-        <body>Loading ....</body>
-      </html>
-    );
   return mobile ? (
     <nav className="border-t-2 border-black flex flex-row items-center justify-between">
       {nav.map((item) => {
