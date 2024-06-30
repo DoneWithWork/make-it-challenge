@@ -1,6 +1,6 @@
 "use client";
 import React, { useEffect, useState } from "react";
-import { House, CircleUser } from "lucide-react";
+import { House, CircleUser, CirclePlus } from "lucide-react";
 import { usePathname } from "next/navigation";
 import Link from "next/link";
 import { isMobile } from "react-device-detect";
@@ -10,6 +10,11 @@ const nav = [
     title: "Home",
     icon: House,
     path: "/", // Add the path for each item
+  },
+  {
+    title: "Report",
+    icon: CirclePlus,
+    path: "/report",
   },
   {
     title: "Profile",
