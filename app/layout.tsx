@@ -1,6 +1,14 @@
 import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
+import Navbar from "./components/Navbar";
+import {
+  BrowserView,
+  MobileView,
+  isBrowser,
+  isMobile,
+} from "react-device-detect";
+import MobileNavbar from "./components/MobileNavbar";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -56,7 +64,20 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className={inter.className}>{children}</body>
+      <body
+        className={`${inter.className} bg-gray-50 max-h-screen overflow-hidden`}
+      >
+        <header>
+          <Navbar />
+        </header>
+        <main className="max-w-7xl mx-auto  ">{children}</main>
+        <footer className="absolute bottom-2 left-2">
+          &copy; Make It challenge
+          <MobileView>
+            <MobileNavbar />
+          </MobileView>
+        </footer>
+      </body>
     </html>
   );
 }
