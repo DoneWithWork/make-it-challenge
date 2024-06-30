@@ -72,9 +72,7 @@ export default function RootLayout({
         </header>
         <main className="max-w-7xl mx-auto  ">{children}</main>
         <footer className="absolute bottom-0 w-screen">
-          <MobileView>
-            <MobileNavbar />
-          </MobileView>
+          <MobileNavbar />
         </footer>
       </body>
     </html>

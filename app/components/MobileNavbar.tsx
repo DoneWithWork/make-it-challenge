@@ -1,8 +1,9 @@
 "use client";
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { House, CircleUser } from "lucide-react";
 import { usePathname } from "next/navigation";
 import Link from "next/link";
+import { isMobile } from "react-device-detect";
 
 const nav = [
   {
@@ -18,9 +19,23 @@ const nav = [
 ];
 
 export default function MobileNavbar() {
+  const [mobile, setMobile] = useState(false);
+  const [isSSR, setIsSSR] = useState(true);
   const pathname = usePathname();
-  return (
-    <nav className="border-t-2 border-black  flex flex-row items-center justify-between">
+  useEffect(() => {
+    setIsSSR(false);
+    setMobile(isMobile);
+  }, []);
+
+  if (isSSR)
+    return (
+      <html>
+        <head />
+        <body>Loading ....</body>
+      </html>
+    );
+  return mobile ? (
+    <nav className="border-t-2 border-black flex flex-row items-center justify-between">
       {nav.map((item) => {
         const Icon = item.icon;
         const isActive = pathname === item.path;
@@ -38,5 +53,7 @@ export default function MobileNavbar() {
         );
       })}
     </nav>
+  ) : (
+    <></>
   );
 }
