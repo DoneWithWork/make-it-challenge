@@ -20,7 +20,7 @@ const nav = [
 export default function MobileNavbar() {
   const pathname = usePathname();
   return (
-    <nav className="border-t-2 border-black w-screen flex flex-row items-center justify-between">
+    <nav className="border-t-2 border-black  flex flex-row items-center justify-between">
       {nav.map((item) => {
         const Icon = item.icon;
         const isActive = pathname === item.path;

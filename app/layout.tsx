@@ -71,8 +71,7 @@ export default function RootLayout({
           <Navbar />
         </header>
         <main className="max-w-7xl mx-auto  ">{children}</main>
-        <footer className="absolute bottom-2 left-2">
-          &copy; Make It challenge
+        <footer className="absolute bottom-0 w-screen">
           <MobileView>
             <MobileNavbar />
           </MobileView>
