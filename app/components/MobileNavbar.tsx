@@ -1,6 +1,6 @@
 "use client";
 import React, { useEffect, useState } from "react";
-import { House, CircleUser, CirclePlus } from "lucide-react";
+import { House, CircleUser, CirclePlus, LogOut, Users } from "lucide-react";
 import { usePathname } from "next/navigation";
 import Link from "next/link";
 import { isMobile } from "react-device-detect";
@@ -9,7 +9,7 @@ const nav = [
   {
     title: "Home",
     icon: House,
-    path: "/", // Add the path for each item
+    path: "/",
   },
   {
     title: "Report",
@@ -21,22 +21,44 @@ const nav = [
     icon: CircleUser,
     path: "/profile",
   },
+  {
+    title: "Admin",
+    icon: Users,
+    path: "/admin",
+  },
 ];
 
-export default function MobileNavbar() {
+const Navbar = () => {
   const [mobile, setMobile] = useState(false);
-  const [isSSR, setIsSSR] = useState(true);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
   const pathname = usePathname();
+
   useEffect(() => {
-    setIsSSR(false);
+    const fetchLoginStatus = async () => {
+      const res = await fetch('/api/getIsLoggedIn');
+      const data = await res.json();
+      setIsLoggedIn(data.isLoggedIn);
+      setIsAdmin(data.isAdmin);
+    };
+    fetchLoginStatus();
     setMobile(isMobile);
   }, []);
+
+  const logout = async () => {
+    await fetch('/api/logout', {
+      method: 'POST',
+    });
+    window.location.href = '/';
+  };
 
   return mobile ? (
     <nav className="border-t-2 border-black flex flex-row items-center justify-between">
       {nav.map((item) => {
         const Icon = item.icon;
         const isActive = pathname === item.path;
+        // Only show admin link if user is admin
+        if (item.title === 'Admin' && !isAdmin) return null;
         return (
           <Link
             href={item.path}
@@ -50,8 +72,21 @@ export default function MobileNavbar() {
           </Link>
         );
       })}
+      {isLoggedIn ? (
+        <button onClick={logout} className="p-4 flex flex-col items-center text-gray-500">
+          <LogOut size={24} />
+          <p>Logout</p>
+        </button>
+      ) : (
+        <Link href="/login" className="p-4 flex flex-col items-center text-gray-500">
+          <CircleUser size={24} />
+          <p>Login</p>
+        </Link>
+      )}
     </nav>
   ) : (
     <></>
   );
-}
+};
+
+export default Navbar;
