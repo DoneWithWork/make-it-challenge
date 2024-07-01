@@ -1,4 +1,5 @@
 "use client";
+import { useRouter } from "next/navigation";
 import React, { useEffect, useState } from "react";
 
 interface Location {
@@ -9,7 +10,7 @@ interface Location {
 const Report: React.FC = () => {
   const [location, setLocation] = useState<Location | undefined>();
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
-
+  const router = useRouter();
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
       setSelectedFile(e.target.files[0]);
@@ -37,16 +38,21 @@ const Report: React.FC = () => {
     formData.append("image", selectedFile);
     formData.append("latitude", location?.latitude.toString() || "");
     formData.append("longitude", location?.longitude.toString() || "");
-
+    const token = localStorage.getItem("accessToken");
     fetch("http://localhost:8080/submit", {
       method: "POST",
       // mode: 'no-cors',
-      credentials: 'include',
+      credentials: "include",
       body: formData,
+      headers: {
+        Authorization: "Bearer " + token,
+      },
     })
       .then((response) => response.json())
-      .then((data) => {
+      .then(async (data) => {
+        const { success } = await data.json();
         console.log("Report submitted successfully:", data);
+        router.push("/");
         // Handle success response
       })
       .catch((error) => {
@@ -78,7 +84,11 @@ const Report: React.FC = () => {
           </div>
           <div>
             <label htmlFor="urgency">Urgency</label>
-            <input type="text" id="urgency" name="urgency" />
+            <select name="urgency">
+              <option value="low">Low</option>
+              <option value="low">Medium</option>
+              <option value="low">High</option>
+            </select>
           </div>
           <div>
             <label htmlFor="severity">Severity</label>

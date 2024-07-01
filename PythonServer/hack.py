@@ -8,24 +8,34 @@ from werkzeug.utils import secure_filename
 import os
 from flask_migrate import Migrate
 from flask_cors import CORS  # Import CORS
+from flask_jwt_extended import JWTManager, create_access_token, jwt_required, get_jwt_identity, get_jwt
 
 # Initialize the Flask application
 application = Flask(__name__)
+
+
 application.secret_key = 'your_secret_key'
 
 current_directory = os.path.dirname(os.path.abspath(__file__))
-# Set the upload folder to be in the same directory as the script
+application.config['SECRET_KEY'] = 'your_strong_secret_key'
+application.config["JWT_SECRET_KEY"] = 'your_jwt_secret_key'
+application.config['JWT_TOKEN_LOCATION'] = ['headers']
+
+# Configure the application to store uploaded images in the static/uploads folder
 application.config['UPLOAD_FOLDER'] = os.path.join(current_directory, 'static/uploads')
 application.config['SQLALCHEMY_DATABASE_URI'] = f"sqlite:///{os.path.join(current_directory, 'database.db')}"
+
+# jwt = JWTManager(application)
 # Ensure the upload directory exists
 if not os.path.exists(application.config['UPLOAD_FOLDER']):
     os.makedirs(application.config['UPLOAD_FOLDER'])
+
 # Initialize the database
 db = SQLAlchemy(application)
 
 # Initialize flask migrate
 migrate = Migrate(application, db)
-
+jwt = JWTManager(application)
 # Initialize CORS
 CORS(application, supports_credentials=True)
 
@@ -63,19 +73,24 @@ with application.app_context():
 def landing():
     return jsonify({"message": "Welcome to the API"})
 
+@application.route('/check_login', methods=['GET'])
+def check_login():
+    print("Session contents:", session)
+    if 'username' in session:
+        print("Session contents:", session)
+        return jsonify(logged_in=True)
+    return jsonify(logged_in=False)
 
 @application.route('/login', methods=['POST'])
 def login():
-   
-
     data = request.json
     username = data.get('username')
     password = data.get('password')
     user = User.query.filter_by(username=username).first()
     if user and check_password_hash(user.password, password):
-        session['user_id'] = user.id
-        session['username'] = user.username
-        return jsonify({"message": "Login successful"})
+        access_token = create_access_token(identity=user.id)
+        admin = user.username == 'admin'
+        return jsonify({"message": "Login successful","token": access_token, "username": user.username, "user_id": user.id, "isAdmin": admin})
     else:
         return jsonify({"error": "Invalid username or password"}), 401
 
@@ -112,10 +127,17 @@ def docs():
     return jsonify({"message": "Docs endpoint"})
 
 
-@application.route('/submit', methods=['POST'])
-def submit():
 
-    if 'user_id' not in session:
+@application.route('/submit', methods=['POST'])
+@jwt_required()
+def submit():
+    print("submit")
+    user_id = get_jwt_identity()
+    print("hi")
+    print(user_id)
+    user = User.query.filter_by(id=user_id).first()
+    print("user:",user)
+    if not user:
         return jsonify({"error": "Unauthorized"}), 401
     data = request.form
     title = data.get('title')
@@ -148,27 +170,11 @@ def submit():
     )
     db.session.add(new_report)
     db.session.commit()
-    return jsonify({"message": "Report submitted successfully"}), 201
+    return jsonify({"message": "Report submitted successfully","success":True}), 201
 
 
-@application.route('/reports', methods=['GET'])
-def reports():
-    if request.method == 'OPTIONS':
-        response = make_response()
-        response.headers.add('Access-Control-Allow-Headers', 'Content-Type')
-        response.headers.add('Access-Control-Allow-Methods', 'POST')
-        return response
-    if 'user_id' not in session:
-        return jsonify({"error": "Unauthorized"}), 401
-    report_id = request.args.get('id')
-    if report_id:
-        report = Report.query.get(report_id)
-        if report:
-            return jsonify(report.to_dict())
-        else:
-            return jsonify({"error": "Report not found"}), 404
-    reports = Report.query.all()
-    return jsonify([report.to_dict() for report in reports])
+
+
 
 
 @application.route('/edit/<int:id>', methods=['POST'])
@@ -203,17 +209,39 @@ def edit(id):
 
 
 @application.route('/admin', methods=['GET'])
+@jwt_required()
 def admin():
-    if request.method == 'OPTIONS':
-        response = make_response()
-        response.headers.add('Access-Control-Allow-Headers', 'Content-Type')
-        response.headers.add('Access-Control-Allow-Methods', 'POST')
-        return response
-    if 'user_id' not in session or session.get('username') != 'admin':
+    user_id = get_jwt_identity()
+ 
+    user = User.query.filter_by(id=user_id).first()
+   
+    isAdmin = user.username == 'admin' if user.username else False
+    print("isAdmin:", isAdmin)
+    if not isAdmin:
         return jsonify({"error": "Unauthorized"}), 401
     reports = Report.query.all()
     return jsonify([report.to_dict() for report in reports])
 
+from datetime import timedelta,timezone
+import json
+application.config["JWT_ACCESS_TOKEN_EXPIRES"] = timedelta(hours=1)
+
+@application.after_request
+def refresh_expiring_jwts(response):
+    try:
+        exp_timestamp = get_jwt()["exp"]
+        now = datetime.now(timezone.utc)
+        target_timestamp = datetime.timestamp(now + timedelta(minutes=30))
+        if target_timestamp > exp_timestamp:
+            access_token = create_access_token(identity=get_jwt_identity())
+            data = response.get_json()
+            if type(data) is dict:
+                data["access_token"] = access_token 
+                response.data = json.dumps(data)
+        return response
+    except (RuntimeError, KeyError):
+        # Case where there is not a valid JWT. Just return the original respone
+        return response
 
 @application.route('/admin/edit/<int:id>', methods=['POST'])
 def admin_edit(id):
@@ -261,21 +289,11 @@ def get_username():
         return jsonify({'username': user.username}), 200
     return jsonify({'error': 'Not logged in'}), 401
 
-@application.route('/api/getIsLoggedIn', methods=['GET'])
-def get_is_logged_in():
-    if 'user_id' in session:
-        user = User.query.get(session['user_id'])
-        if user:
-            is_admin = user.username == 'admin' if user.username else False
-            return jsonify({'isLoggedIn': True, 'isAdmin': is_admin}), 200
-        else:
-            return jsonify({'error': 'User not found'}), 404
-    return jsonify({'isLoggedIn': False}), 200
 
     
 @application.route('/api/logout', methods=['POST'])
 def logout():
-    session.clear()
+    
     return jsonify({'message': 'Logged out successfully'}), 200
     
 # Custom method to serialize Report objects

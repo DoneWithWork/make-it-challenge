@@ -1,30 +1,38 @@
 "use client";
 import React, { useState } from "react";
-import { useRouter } from 'next/navigation';
+import { useRouter } from "next/navigation";
+import { useUserStore } from "@/context/AuthContext";
+import { access } from "fs";
 
 const Login: React.FC = () => {
-  const [username, setUsername] = useState('');
-  const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
   const router = useRouter();
-
+  const updateLogin = useUserStore((state: any) => state.updateLogin);
+  const updateUser = useUserStore((state: any) => state.updateUser);
+  const user = useUserStore((state: any) => state.user);
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    const res = await fetch('http://localhost:8080/login', {
-      method: 'POST',
+    const res = await fetch("http://localhost:8080/login", {
+      method: "POST",
       // mode: 'no-cors',
-      credentials: 'include',
+      credentials: "include",
       headers: {
-        'Content-Type': 'application/json',
+        "Content-Type": "application/json",
       },
       body: JSON.stringify({ username, password }),
     });
     const data = await res.json();
-    if (data.error) {
-      setError(data.error);
-    } else {
-      router.push('/report');
-    }
+    updateLogin(true);
+    updateUser({
+      username: data.username,
+      id: data.user_id,
+      admin: data.isAdmin,
+      accessToken: data.token,
+    });
+    localStorage.setItem("accessToken", data.token);
+    router.push("/");
   };
 
   return (

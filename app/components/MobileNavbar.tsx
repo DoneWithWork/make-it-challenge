@@ -12,6 +12,7 @@ import {
 import { usePathname, useRouter } from "next/navigation";
 import Link from "next/link";
 import { isMobile } from "react-device-detect";
+import { useUserStore } from "@/context/AuthContext";
 
 const nav = [
   {
@@ -27,45 +28,62 @@ const nav = [
   {
     title: "Admin",
     icon: Users,
-    path: "/admin",
+    path: "/reports",
   },
 ];
 
 const Navbar = () => {
-  const [mobile, setMobile] = useState(false);
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [isAdmin, setIsAdmin] = useState(false);
   const pathname = usePathname();
   const router = useRouter();
+  const [Mobile, setIsMobile] = useState(false);
+  const loggedIn = useUserStore((state: any) => state.loggedIn);
+  const isAdmin = useUserStore((state: any) => state.user.admin);
+  const updateLogin = useUserStore((state: any) => state.updateLogin);
+  const updateUser = useUserStore((state: any) => state.updateUser);
+  const user = useUserStore((state: any) => state.user);
+  const sub = useUserStore.subscribe(console.log);
   useEffect(() => {
-    const fetchLoginStatus = async () => {
-      const res = await fetch("http://localhost:8080/api/getIsLoggedIn", {
-        credentials: "include",
-      }); //, {mode: 'no-cors'});
-      const data = await res.json();
-      console.log(data);
-      setIsLoggedIn(data.isLoggedIn);
-      setIsAdmin(data.isAdmin);
-    };
-    fetchLoginStatus();
-    setMobile(isMobile);
-  }, []);
+    // const fetchLoginStatus = async () => {
+    //   try {
+    //     const res = await fetch("http://localhost:8080/api/getIsLoggedIn", {
+    //       credentials: "include",
+    //     });
+    //     const data = await res.json();
+
+    //     updateLogin({
+    //       loggedIn: data.isLoggedIn,
+    //     });
+    //     updateUser({
+    //       admin: data.isAdmin,
+    //       username: data.user,
+    //     });
+    //   } catch (error) {
+    //     console.error("Failed to fetch login status:", error);
+    //   }
+    // };
+    // fetchLoginStatus();
+    setIsMobile(isMobile);
+  });
 
   const logout = async () => {
-    await fetch("/api/logout", {
-      // mode: 'no-cors',
-      credentials: "include",
-      method: "POST",
-    });
-    router.push("/");
+    try {
+      await fetch("http://localhost:8080/api/logout", {
+        credentials: "include",
+        method: "POST",
+      });
+      updateLogin({ loggedIn: false });
+      updateUser({ admin: false, username: "" });
+      router.push("/");
+    } catch (error) {
+      console.error("Failed to logout:", error);
+    }
   };
-
-  return mobile ? (
+  console.log(loggedIn);
+  return Mobile ? (
     <nav className="border-t-2 border-black flex flex-row items-center justify-between">
       {nav.map((item) => {
         const Icon = item.icon;
         const isActive = pathname === item.path;
-        // Only show admin link if user is admin
         if (item.title === "Admin" && !isAdmin) return null;
         return (
           <Link
@@ -80,7 +98,7 @@ const Navbar = () => {
           </Link>
         );
       })}
-      {isLoggedIn ? (
+      {loggedIn == true ? (
         <div>
           <button
             onClick={logout}
@@ -93,7 +111,7 @@ const Navbar = () => {
             href="/report"
             className="p-4 flex flex-col items-center text-gray-500"
           >
-            <UserPlus size={24} />
+            <CirclePlus size={24} />
             <p>Upload</p>
           </Link>
         </div>
@@ -118,7 +136,9 @@ const Navbar = () => {
       )}
     </nav>
   ) : (
-    <></>
+    <div>
+      <h1>On desktop</h1>
+    </div>
   );
 };
 

@@ -65,13 +65,11 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body
-        className={`${inter.className} bg-gray-50 max-h-screen overflow-hidden`}
+        className={`${inter.className} bg-gray-50 relative flex flex-col h-screen`}
       >
-        <header>
-          <Navbar />
-        </header>
-        <main className="max-w-7xl mx-auto  ">{children}</main>
-        <footer className="absolute bottom-0 w-screen">
+        <header>{/* <Navbar /> */}</header>
+        <main className="max-w-7xl mx-auto  overflow-y-auto">{children}</main>
+        <footer className="fixed bg-white bottom-0 w-screen">
           <MobileNavbar />
         </footer>
       </body>
