@@ -12,10 +12,14 @@ from flask_cors import CORS  # Import CORS
 # Initialize the Flask application
 application = Flask(__name__)
 application.secret_key = 'your_secret_key'
-application.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///database.db'
-application.config['UPLOAD_FOLDER'] = 'static/uploads'
-application.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
+current_directory = os.path.dirname(os.path.abspath(__file__))
+# Set the upload folder to be in the same directory as the script
+application.config['UPLOAD_FOLDER'] = os.path.join(current_directory, 'static/uploads')
+application.config['SQLALCHEMY_DATABASE_URI'] = f"sqlite:///{os.path.join(current_directory, 'database.db')}"
+# Ensure the upload directory exists
+if not os.path.exists(application.config['UPLOAD_FOLDER']):
+    os.makedirs(application.config['UPLOAD_FOLDER'])
 # Initialize the database
 db = SQLAlchemy(application)
 
@@ -62,11 +66,8 @@ def landing():
 
 @application.route('/login', methods=['POST'])
 def login():
-    if request.method == 'OPTIONS':
-        response = make_response()
-        response.headers.add('Access-Control-Allow-Headers', 'Content-Type')
-        response.headers.add('Access-Control-Allow-Methods', 'POST')
-        return response
+   
+
     data = request.json
     username = data.get('username')
     password = data.get('password')
@@ -81,11 +82,7 @@ def login():
 
 @application.route('/register', methods=['POST'])
 def register():
-    if request.method == 'OPTIONS':
-        response = make_response()
-        response.headers.add('Access-Control-Allow-Headers', 'Content-Type')
-        response.headers.add('Access-Control-Allow-Methods', 'POST')
-        return response
+  
     data = request.json
     username = data.get('username')
     password = data.get('password')
@@ -117,12 +114,7 @@ def docs():
 
 @application.route('/submit', methods=['POST'])
 def submit():
-    print("Session contents:", session)
-    if request.method == 'OPTIONS':
-        response = make_response()
-        response.headers.add('Access-Control-Allow-Headers', 'Content-Type')
-        response.headers.add('Access-Control-Allow-Methods', 'POST')
-        return response
+
     if 'user_id' not in session:
         return jsonify({"error": "Unauthorized"}), 401
     data = request.form
@@ -138,8 +130,9 @@ def submit():
 
     if not title or not description or not latitude or not longitude or not name or not image:
         return jsonify({"error": "All fields are required"}), 400
-
+  
     filename = secure_filename(image.filename)
+    print("filename:",filename)
     image.save(os.path.join(application.config['UPLOAD_FOLDER'], filename))
 
     new_report = Report(

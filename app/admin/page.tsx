@@ -1,4 +1,5 @@
 "use client";
+import Image from "next/image";
 import React, { useEffect, useState } from "react";
 
 interface Report {
@@ -12,7 +13,7 @@ interface Report {
   severity: string;
   status: string;
   timestamp: string;
-  image_filename: string;
+  image_filename: File | null;
 }
 
 const Admin: React.FC = () => {
@@ -20,8 +21,11 @@ const Admin: React.FC = () => {
 
   useEffect(() => {
     const fetchReports = async () => {
-      const res = await fetch('http://localhost:8080/api/reports', {credentials: 'include'}); //, {mode: 'no-cors'});
+      const res = await fetch("http://localhost:8080/api/reports", {
+        credentials: "include",
+      }); //, {mode: 'no-cors'});
       const data = await res.json();
+      console.log(data[0].image_filename);
       setReports(data);
     };
     fetchReports();
@@ -60,7 +64,12 @@ const Admin: React.FC = () => {
                 <td>{new Date(report.timestamp).toLocaleString()}</td>
                 <td>
                   {report.image_filename && (
-                    <img src={`/static/uploads/${report.image_filename}`} alt={report.title} width="50" />
+                    <Image
+                      src={`http://localhost:8080/static/uploads/${report.image_filename}`}
+                      alt={report.title}
+                      width="50"
+                      height={"100"}
+                    />
                   )}
                 </td>
               </tr>
