@@ -34,20 +34,25 @@ const Report: React.FC = () => {
       return;
     }
     const formData = new FormData(event.currentTarget);
-    formData.append("photo", selectedFile);
-    const data = Object.fromEntries(formData.entries());
-    console.log("Report data:", data);
+    formData.append("image", selectedFile);
+    formData.append("latitude", location?.latitude.toString() || "");
+    formData.append("longitude", location?.longitude.toString() || "");
 
-    // Here you can send `formData` to your backend API for processing
-    // Example using fetch:
-    // fetch("/api/submit-report", {
-    //   method: "POST",
-    //   body: formData,
-    // }).then(response => {
-    //   // Handle response
-    // }).catch(error => {
-    //   // Handle error
-    // });
+    fetch("http://localhost:8080/submit", {
+      method: "POST",
+      // mode: 'no-cors',
+      credentials: 'include',
+      body: formData,
+    })
+      .then((response) => response.json())
+      .then((data) => {
+        console.log("Report submitted successfully:", data);
+        // Handle success response
+      })
+      .catch((error) => {
+        console.error("Error submitting report:", error);
+        // Handle error response
+      });
   };
 
   return (
@@ -62,6 +67,22 @@ const Report: React.FC = () => {
           <div>
             <label htmlFor="description">Description</label>
             <textarea id="description" name="description" required />
+          </div>
+          <div>
+            <label htmlFor="name">Name</label>
+            <input type="text" id="name" name="name" required />
+          </div>
+          <div>
+            <label htmlFor="tags">Tags</label>
+            <input type="text" id="tags" name="tags" />
+          </div>
+          <div>
+            <label htmlFor="urgency">Urgency</label>
+            <input type="text" id="urgency" name="urgency" />
+          </div>
+          <div>
+            <label htmlFor="severity">Severity</label>
+            <input type="text" id="severity" name="severity" />
           </div>
           <input
             type="hidden"
