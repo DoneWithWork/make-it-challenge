@@ -38,8 +38,10 @@ const Report: React.FC = () => {
     formData.append("latitude", location?.latitude.toString() || "");
     formData.append("longitude", location?.longitude.toString() || "");
 
-    fetch("/submit", {
+    fetch("http://localhost:8080/submit", {
       method: "POST",
+      // mode: 'no-cors',
+      credentials: 'include',
       body: formData,
     })
       .then((response) => response.json())
