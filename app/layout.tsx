@@ -9,6 +9,7 @@ import {
   isMobile,
 } from "react-device-detect";
 import MobileNavbar from "./components/MobileNavbar";
+import AppWalletProvider from "./components/AppWalletProvider";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -67,11 +68,13 @@ export default function RootLayout({
       <body
         className={`${inter.className} bg-gray-50 relative flex flex-col h-screen`}
       >
-        <header>{/* <Navbar /> */}</header>
-        <main className="max-w-7xl mx-auto  overflow-y-auto">{children}</main>
-        <footer className="fixed bg-white bottom-0 w-screen">
-          <MobileNavbar />
-        </footer>
+        <AppWalletProvider>
+          <header>{/* <Navbar /> */}</header>
+          <main className="max-w-7xl mx-auto  overflow-y-auto">{children}</main>
+          <footer className="fixed bg-white bottom-0 w-screen">
+            <MobileNavbar />
+          </footer>
+        </AppWalletProvider>
       </body>
     </html>
   );

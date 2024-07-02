@@ -1,6 +1,8 @@
 "use client";
 import { useRouter } from "next/navigation";
 import React, { useEffect, useState } from "react";
+import Camera from "react-html5-camera-photo";
+import "react-html5-camera-photo/build/css/index.css";
 
 interface Location {
   latitude: number;
@@ -10,38 +12,48 @@ interface Location {
 const Report: React.FC = () => {
   const [location, setLocation] = useState<Location | undefined>();
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [photoData, setPhotoData] = useState<string | null>(null);
   const router = useRouter();
+
+  useEffect(() => {
+    if ("geolocation" in navigator) {
+      navigator.geolocation.getCurrentPosition(({ coords }) => {
+        const { latitude, longitude } = coords;
+        setLocation({ latitude, longitude });
+      });
+    }
+  }, []);
+
+  const handleTakePhoto = (dataUri: string) => {
+    setPhotoData(dataUri);
+  };
+
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
       setSelectedFile(e.target.files[0]);
     }
   };
 
-  useEffect(() => {
-    if ("geolocation" in navigator) {
-      // Retrieve latitude & longitude coordinates from `navigator.geolocation` Web API
-      navigator.geolocation.getCurrentPosition(({ coords }) => {
-        const { latitude, longitude } = coords;
-        setLocation({ latitude, longitude });
-        console.log("Latitude:", latitude, "Longitude:", longitude);
-      });
-    }
-  }, []);
-
-  const submitReport = (event: React.FormEvent<HTMLFormElement>) => {
+  const submitReport = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    if (!selectedFile) {
-      console.error("No file selected!");
+    if (!selectedFile && !photoData) {
+      console.error("No file or photo taken!");
       return;
     }
+
     const formData = new FormData(event.currentTarget);
-    formData.append("image", selectedFile);
+    if (selectedFile) {
+      formData.append("image", selectedFile);
+    } else if (photoData) {
+      const blob = await fetch(photoData).then((res) => res.blob());
+      formData.append("image", blob, "photo.jpg");
+    }
     formData.append("latitude", location?.latitude.toString() || "");
     formData.append("longitude", location?.longitude.toString() || "");
+
     const token = localStorage.getItem("accessToken");
     fetch("http://localhost:8080/submit", {
       method: "POST",
-      // mode: 'no-cors',
       credentials: "include",
       body: formData,
       headers: {
@@ -49,20 +61,17 @@ const Report: React.FC = () => {
       },
     })
       .then((response) => response.json())
-      .then(async (data) => {
-        const { success } = await data.json();
+      .then((data) => {
         console.log("Report submitted successfully:", data);
         router.push("/");
-        // Handle success response
       })
       .catch((error) => {
         console.error("Error submitting report:", error);
-        // Handle error response
       });
   };
 
   return (
-    <div className="mx-auto w-full max-w-[400px] shadow-lg border-2 rounded-lg">
+    <div className="mx-auto w-full max-w-[400px] max-h-[500px] shadow-lg border-2 rounded-lg">
       <div className="text-center px-2 py-1">
         <p className="text-xl font-semibold">Report</p>
         <form onSubmit={submitReport}>
@@ -86,8 +95,8 @@ const Report: React.FC = () => {
             <label htmlFor="urgency">Urgency</label>
             <select name="urgency">
               <option value="low">Low</option>
-              <option value="low">Medium</option>
-              <option value="low">High</option>
+              <option value="medium">Medium</option>
+              <option value="high">High</option>
             </select>
           </div>
           <div>
@@ -104,6 +113,7 @@ const Report: React.FC = () => {
             name="longitude"
             value={location?.longitude || ""}
           />
+          <div></div>
           <div>
             <input
               type="file"

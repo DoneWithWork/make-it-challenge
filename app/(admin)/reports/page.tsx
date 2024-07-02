@@ -1,23 +1,10 @@
 "use client";
 import { useUserStore } from "@/context/AuthContext";
+import { Report } from "@/lib/types";
 import Image from "next/image";
 import Link from "next/link";
 import { report } from "process";
 import React, { useEffect, useState } from "react";
-
-interface Report {
-  id: number;
-  title: string;
-  description: string;
-  location: string;
-  name: string;
-  tags: string;
-  urgency: string;
-  severity: string;
-  status: string;
-  timestamp: string;
-  image_filename: File | null;
-}
 
 export default function Admin() {
   const [reports, setReports] = useState<Report[]>([]);
@@ -59,7 +46,13 @@ export default function Admin() {
           >
             {report.urgency}
           </p>
+
           <p>{new Date(report.timestamp).toLocaleString()}</p>
+          <div>
+            <p className="bg-blue-300 inline-block px-2 py-1 rounded-xl shadow-xl m-2">
+              {report.status}
+            </p>
+          </div>
           <div className="flex flex-col items-center">
             {report.image_filename && (
               <Image

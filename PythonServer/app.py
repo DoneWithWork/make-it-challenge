@@ -9,7 +9,8 @@ import os
 from flask_migrate import Migrate
 from flask_cors import CORS  # Import CORS
 from flask_jwt_extended import JWTManager, create_access_token, jwt_required, get_jwt_identity, get_jwt
-
+from sqlalchemy import ForeignKey
+from sqlalchemy.orm import relationship
 # Initialize the Flask application
 application = Flask(__name__)
 
@@ -40,14 +41,14 @@ jwt = JWTManager(application)
 CORS(application, supports_credentials=True)
 
 
+
 # Define the User model
 class User(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(150), nullable=False, unique=True)
     password = db.Column(db.String(150), nullable=False)
     is_admin = db.Column(db.Boolean, default=False)
-
-
+    points = db.Column(db.Integer, default=0)
 # Define the Report model
 class Report(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -62,6 +63,7 @@ class Report(db.Model):
     status = db.Column(db.String(50), nullable=False, default='Pending')
     timestamp = db.Column(db.DateTime, default=datetime.utcnow)
     image_filename = db.Column(db.String(150), nullable=True)
+    user = db.Column(db.Integer)
 
 # Ensure the database tables are created
 with application.app_context():
@@ -166,7 +168,8 @@ def submit():
         tags=tags,
         urgency=urgency,
         severity=severity,
-        image_filename=filename
+        image_filename=filename,
+        user=user.id
     )
     db.session.add(new_report)
     db.session.commit()
@@ -176,36 +179,48 @@ def submit():
 
 
 
+# only an admin should be able to access this route
+@application.route('/report/<int:id>', methods=['GET'])
+@jwt_required()
+def singleReport(id):
+    user_id = get_jwt_identity()
+ 
+    user = User.query.filter_by(id=user_id).first()
+    if user is None:
+        return jsonify({"error": "User not found"}), 404
+    isAdmin = user.username == 'admin' if user.username else False
+    if not isAdmin:
+        return jsonify({"error": "Unauthorized"}), 401
+    
+    report = Report.query.get_or_404(id)
+    return jsonify(report.to_dict())
 
-@application.route('/edit/<int:id>', methods=['POST'])
+@application.route('/report/<int:id>', methods=['POST'])
+@jwt_required()
 def edit(id):
-    if request.method == 'OPTIONS':
-        response = make_response()
-        response.headers.add('Access-Control-Allow-Headers', 'Content-Type')
-        response.headers.add('Access-Control-Allow-Methods', 'POST')
-        return response
-    if 'user_id' not in session:
+    user_id = get_jwt_identity()
+ 
+    user = User.query.filter_by(id=user_id).first()
+    if user is None:
+        return jsonify({"error": "User not found"}), 404
+    isAdmin = user.username == 'admin' if user.username else False
+    if not isAdmin:
         return jsonify({"error": "Unauthorized"}), 401
     report = Report.query.get_or_404(id)
-    data = request.form
-    report.title = data.get('title', report.title)
-    report.description = data.get('description', report.description)
-    report.latitude = data.get('latitude', report.latitude)
-    report.longitude = data.get('longitude', report.longitude)
-    report.name = data.get('name', report.name)
-    report.tags = data.get('tags', report.tags)
-    report.urgency = data.get('urgency', report.urgency)
-    report.severity = data.get('severity', report.severity)
+    data = request.json
+    print(data)
+    report.status = data.get("status")
+    print(report.status)
     if 'status' in data:
-        report.status = data['status']
-    if 'image' in request.files:
-        image = request.files['image']
-        if image.filename:
-            filename = secure_filename(image.filename)
-            image.save(os.path.join(application.config['UPLOAD_FOLDER'], filename))
-            report.image_filename = filename
+        
+        status = data['status']
+        if status == "Solved":
+            user.points += 10
+            db.session.commit()
+
+            return jsonify({"message": "Report solved successfully and 10 points awarded","success":True}),201
     db.session.commit()
-    return jsonify({"message": "Report updated successfully"})
+    return jsonify({"message": "Report updated successfully"}),201
 
 
 @application.route('/admin', methods=['GET'])
@@ -243,44 +258,47 @@ def refresh_expiring_jwts(response):
         # Case where there is not a valid JWT. Just return the original respone
         return response
 
-@application.route('/admin/edit/<int:id>', methods=['POST'])
-def admin_edit(id):
-    if request.method == 'OPTIONS':
-        response = make_response()
-        response.headers.add('Access-Control-Allow-Headers', 'Content-Type')
-        response.headers.add('Access-Control-Allow-Methods', 'POST')
-        return response
-    if 'user_id' not in session or session.get('username') != 'admin':
-        return jsonify({"error": "Unauthorized"}), 401
-    report = Report.query.get_or_404(id)
-    data = request.form
-    report.title = data.get('title', report.title)
-    report.description = data.get('description', report.description)
-    report.latitude = data.get('latitude', report.latitude)
-    report.longitude = data.get('longitude', report.longitude)
-    report.name = data.get('name', report.name)
-    report.tags = data.get('tags', report.tags)
-    report.urgency = data.get('urgency', report.urgency)
-    report.severity = data.get('severity', report.severity)
-    report.status = data.get('status', report.status)
-    if 'image' in request.files:
-        image = request.files['image']
-        if image.filename:
-            filename = secure_filename(image.filename)
-            image.save(os.path.join(application.config['UPLOAD_FOLDER'], filename))
-            report.image_filename = filename
-    db.session.commit()
-    return jsonify({"message": "Report updated successfully"})
+# @application.route('/admin/edit/<int:id>', methods=['POST'])
+# def admin_edit(id):
+#     if request.method == 'OPTIONS':
+#         response = make_response()
+#         response.headers.add('Access-Control-Allow-Headers', 'Content-Type')
+#         response.headers.add('Access-Control-Allow-Methods', 'POST')
+#         return response
+#     if 'user_id' not in session or session.get('username') != 'admin':
+#         return jsonify({"error": "Unauthorized"}), 401
+#     report = Report.query.get_or_404(id)
+#     data = request.form
+#     report.title = data.get('title', report.title)
+#     report.description = data.get('description', report.description)
+#     report.latitude = data.get('latitude', report.latitude)
+#     report.longitude = data.get('longitude', report.longitude)
+#     report.name = data.get('name', report.name)
+#     report.tags = data.get('tags', report.tags)
+#     report.urgency = data.get('urgency', report.urgency)
+#     report.severity = data.get('severity', report.severity)
+#     report.status = data.get('status', report.status)
+#     if 'image' in request.files:
+#         image = request.files['image']
+#         if image.filename:
+#             filename = secure_filename(image.filename)
+#             image.save(os.path.join(application.config['UPLOAD_FOLDER'], filename))
+#             report.image_filename = filename
+#     db.session.commit()
+#     return jsonify({"message": "Report updated successfully"})
 
 
-@application.route('/api/reports', methods=['GET'])
+@application.route('/user/reports', methods=['GET'])
+@jwt_required()
 def api_reports():
-    report_id = request.args.get('id')
-    if report_id:
-        report = Report.query.get(report_id)
-        return jsonify(report.to_dict())
-    reports = Report.query.all()
-    return jsonify([report.to_dict() for report in reports])
+    user_id = get_jwt_identity()
+ 
+    user = User.query.filter_by(id=user_id).first()
+    if user is None:
+        return jsonify({"error": "User not found"}), 404
+    reports = Report.query.filter_by(user=user.id).all()  # Get all reports submitted by the user
+    return jsonify([report.to_dict() for report in reports]), 200
+   
 
 @application.route('/api/getUsername', methods=['GET'])
 def get_username():
