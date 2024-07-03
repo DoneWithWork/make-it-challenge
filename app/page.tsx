@@ -3,25 +3,34 @@ import { useUserStore } from "@/context/AuthContext";
 import { Report } from "@/lib/types";
 import { baseApiUrl } from "@/lib/utils";
 import Image from "next/image";
+import { useRouter } from "next/navigation";
 import React, { useEffect, useState } from "react";
 
 export default function Home() {
   const user = useUserStore((state: any) => state.user);
   const [reports, setReports] = useState<Report[]>([]);
+  const router = useRouter();
   useEffect(() => {
     const fetchReports = async () => {
       const token = localStorage.getItem("accessToken");
-      const res = await fetch(`${baseApiUrl}/user/reports`, {
-        credentials: "include",
-        method: "GET",
-        headers: {
-          Authorization: "Bearer " + token,
-        },
-      }); //, {mode: 'no-cors'});
-      const data = await res.json();
-      console.log(data);
+      if (!token) return;
+      try {
+        const res = await fetch(`${process.env.FLASK_ENDPOINT}/user/reports`, {
+          credentials: "include",
+          method: "GET",
+          headers: {
+            Authorization: "Bearer " + token,
+          },
+        }); //, {mode: 'no-cors'});\
 
-      setReports(data);
+        const data = await res.json();
+        console.log(data);
+
+        setReports(data);
+      } catch (error) {
+        console.log(error);
+        setReports([]);
+      }
     };
 
     fetchReports();
@@ -30,7 +39,8 @@ export default function Home() {
     <div className="px-2 py-2">
       <h1 className="text-2xl font-semibold">Welcome {user?.username}</h1>
       <p className="mt-2 font-semibold">Your reports</p>
-      {reports != null &&
+      {reports.length === 0 && <p>No reports. Please login</p>}
+      {reports.length > 0 &&
         reports.map((report, index) => (
           <div key={index}>
             <p className="font-bold text-xl">{report.title}</p>

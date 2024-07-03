@@ -52,7 +52,7 @@ const Report: React.FC = () => {
     formData.append("longitude", location?.longitude.toString() || "");
 
     const token = localStorage.getItem("accessToken");
-    fetch("http://localhost:8080/submit", {
+    fetch(`${process.env.FLASK_ENDPOINT}/submit`, {
       method: "POST",
       credentials: "include",
       body: formData,
@@ -71,8 +71,8 @@ const Report: React.FC = () => {
   };
 
   return (
-    <div className="mx-auto w-full max-w-[400px] max-h-[500px] shadow-lg border-2 rounded-lg">
-      <div className="text-center px-2 py-1">
+    <div className="max-w-screen   shadow-lg border-2 rounded-lg">
+      <div className="text-center ">
         <p className="text-xl font-semibold">Report</p>
         <form onSubmit={submitReport}>
           <div>

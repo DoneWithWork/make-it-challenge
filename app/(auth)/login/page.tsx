@@ -14,7 +14,7 @@ const Login: React.FC = () => {
   const user = useUserStore((state: any) => state.user);
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    const res = await fetch("http://localhost:8080/login", {
+    const res = await fetch(`${process.env.FLASK_ENDPOINT}/login`, {
       method: "POST",
       // mode: 'no-cors',
       credentials: "include",

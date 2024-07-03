@@ -67,12 +67,13 @@ const Navbar = () => {
 
   const logout = async () => {
     try {
-      await fetch("http://localhost:8080/api/logout", {
+      await fetch(`${process.env.FLASK_ENDPOINT}/api/logout`, {
         credentials: "include",
         method: "POST",
       });
       updateLogin({ loggedIn: false });
       updateUser({ admin: false, username: "" });
+      localStorage.removeItem("accessToken");
       router.push("/");
     } catch (error) {
       console.error("Failed to logout:", error);
@@ -104,14 +105,14 @@ const Navbar = () => {
             onClick={logout}
             className="p-4 flex flex-col items-center text-gray-500"
           >
-            <LogOut size={24} />
+            <LogOut size={15} />
             <p>Logout</p>
           </button>
           <Link
             href="/report"
             className="p-4 flex flex-col items-center text-gray-500"
           >
-            <CirclePlus size={24} />
+            <CirclePlus size={15} />
             <p>Upload</p>
           </Link>
         </div>
@@ -121,7 +122,7 @@ const Navbar = () => {
             href="/login"
             className="p-4 flex flex-col items-center text-gray-500"
           >
-            <LogIn size={24} />
+            <LogIn size={15} />
             <p>Login</p>
           </Link>
 
@@ -129,7 +130,7 @@ const Navbar = () => {
             href="/register"
             className="p-4 flex flex-col items-center text-gray-500"
           >
-            <UserPlus size={24} />
+            <UserPlus size={15} />
             <p>Register</p>
           </Link>
         </div>

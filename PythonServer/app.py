@@ -69,7 +69,19 @@ class Report(db.Model):
 with application.app_context():
     db.create_all()
 
-
+@application.route("/mint",methods=['POST'])
+@jwt_required()
+def Mint():
+    user_id = get_jwt_identity()
+ 
+    user = User.query.filter_by(id=user_id).first()
+    if user is None:
+        return jsonify({"error": "User not found"}), 404
+    if user.point <1:
+        return jsonify({"error": "Not enough points","canMint":False}), 401
+    user.points -= 1
+    db.session.commit()
+    return jsonify({"message": "Minted successfully","canMint":True}), 201
 # Routes
 @application.route('/')
 def landing():
@@ -112,6 +124,9 @@ def register():
         db.session.commit()
         return jsonify({"message": "Registration successful"}), 201
 
+@application.route("/",methods=['GET'])
+def Test():
+    return jsonify({"message":"Hello World"})
 
 @application.route('/upload', methods=['GET'])
 def upload():

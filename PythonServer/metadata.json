@@ -1,0 +1,26 @@
+{
+  "name": "Road",
+  "symbol": "ROAD",
+  "description": "Very special road",
+  "seller_fee_basis_points": 700,
+  "image": "https://donewithwork.pythonanywhere.com/static/smile.png",
+  "attributes": [
+    {
+      "trait_type": "cypher",
+      "value": "Divinity"
+    },
+    {
+      "trait_type": "game",
+      "value": "The Old Castle"
+    }
+  ],
+  "properties": {
+    "files": [
+      {
+        "uri": "https://donewithwork.pythonanywhere.com/static/smile.png",
+        "type": "image/png"
+      }
+    ],
+    "category": "image"
+  }
+}

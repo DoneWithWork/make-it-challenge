@@ -1,21 +1,21 @@
 "use client";
 import React, { useState } from "react";
-import { useRouter } from 'next/navigation';
+import { useRouter } from "next/navigation";
 
 const Register: React.FC = () => {
-  const [username, setUsername] = useState('');
-  const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
   const router = useRouter();
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
-    const res = await fetch('http://localhost:8080/register', {
-      method: 'POST',
+    const res = await fetch(`${process.env.FLASK_ENDPOINT}/register`, {
+      method: "POST",
       // mode: 'no-cors',
-      credentials: 'include',
+      credentials: "include",
       headers: {
-        'Content-Type': 'application/json',
+        "Content-Type": "application/json",
       },
       body: JSON.stringify({ username, password }),
     });
@@ -23,7 +23,7 @@ const Register: React.FC = () => {
     if (data.error) {
       setError(data.error);
     } else {
-      router.push('login');
+      router.push("login");
     }
   };
 

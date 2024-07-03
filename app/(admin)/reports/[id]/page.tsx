@@ -24,13 +24,16 @@ const SingleReport = ({
         router.push("/login");
       }
       try {
-        const res = await fetch(`${baseApiUrl}/report/${params.id}`, {
-          headers: {
-            Authorization: "Bearer " + token,
-          },
-          credentials: "include",
-          method: "GET",
-        });
+        const res = await fetch(
+          `${process.env.FLASK_ENDPOINT}/report/${params.id}`,
+          {
+            headers: {
+              Authorization: "Bearer " + token,
+            },
+            credentials: "include",
+            method: "GET",
+          }
+        );
         const data = await res.json();
         setReport(data);
         setStatus(data.status);
