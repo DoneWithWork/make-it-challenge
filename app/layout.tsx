@@ -13,10 +13,10 @@ import AppWalletProvider from "./components/AppWalletProvider";
 
 const inter = Inter({ subsets: ["latin"] });
 
-const APP_NAME = "Repotje";
-const APP_DEFAULT_TITLE = "My Awesome PWA App";
+const APP_NAME = "Folksity";
+const APP_DEFAULT_TITLE = "Folksity";
 const APP_TITLE_TEMPLATE = "%s - PWA App";
-const APP_DESCRIPTION = "Best PWA app in the world!";
+const APP_DESCRIPTION = "Best mobile app in the world!";
 
 export const metadata: Metadata = {
   applicationName: APP_NAME,
