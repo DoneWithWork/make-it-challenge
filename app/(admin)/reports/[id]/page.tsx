@@ -108,7 +108,7 @@ const SingleReport = ({
           <div className="flex flex-col items-center">
             {theReport.image_filename && (
               <Image
-                src={`http://localhost:8080/static/uploads/${theReport.image_filename}`}
+                src={`${process.env.NEXT_PUBLIC_FLASK_ENDPOINT}/static/uploads/${theReport.image_filename}`}
                 alt={theReport.title}
                 width="300"
                 height={"100"}

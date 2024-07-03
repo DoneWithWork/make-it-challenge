@@ -63,7 +63,7 @@ export default function Home() {
             <div className="flex flex-col items-center">
               {report.image_filename && (
                 <Image
-                  src={`http://localhost:8080/static/uploads/${report.image_filename}`}
+                  src={`${process.env.NEXT_PUBLIC_FLASK_ENDPOINT}/static/uploads/${report.image_filename}`}
                   alt={report.title}
                   width="300"
                   height={"100"}
