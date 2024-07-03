@@ -25,7 +25,7 @@ const SingleReport = ({
       }
       try {
         const res = await fetch(
-          `${process.env.NEXT_PUBLIC_FLASK_ENDPOINT}/report/${params.id}`,
+          `${process.env.NEXT_PUBLIC_FLASK_ENDPOINT}report/${params.id}`,
           {
             headers: {
               Authorization: "Bearer " + token,
@@ -52,15 +52,18 @@ const SingleReport = ({
       router.push("/login");
     }
     try {
-      const res = await fetch(`${baseApiUrl}/report/${params.id}`, {
-        method: "POST",
-        body: JSON.stringify({ status: status }),
-        headers: {
-          Authorization: "Bearer " + token,
-          "Content-Type": "application/json",
-        },
-        credentials: "include",
-      });
+      const res = await fetch(
+        `${process.env.NEXT_PUBLIC_FLASK_ENDPOINT}/report/${params.id}`,
+        {
+          method: "POST",
+          body: JSON.stringify({ status: status }),
+          headers: {
+            Authorization: "Bearer " + token,
+            "Content-Type": "application/json",
+          },
+          credentials: "include",
+        }
+      );
       const data = await res.json();
 
       console.log("Status updated:", data);

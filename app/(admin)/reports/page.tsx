@@ -18,13 +18,16 @@ export default function Admin() {
       const fetchReports = async () => {
         const token = localStorage.getItem("accessToken");
         if (!token) router.push("/login");
-        const res = await fetch("http://localhost:8080/admin", {
-          credentials: "include",
-          method: "GET",
-          headers: {
-            Authorization: "Bearer " + token,
-          },
-        }); //, {mode: 'no-cors'});
+        const res = await fetch(
+          `${process.env.NEXT_PUBLIC_FLASK_ENDPOINT}admin`,
+          {
+            credentials: "include",
+            method: "GET",
+            headers: {
+              Authorization: "Bearer " + token,
+            },
+          }
+        ); //, {mode: 'no-cors'});
         const data = await res.json();
         console.log(data);
 
