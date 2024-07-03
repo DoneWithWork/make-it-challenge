@@ -15,6 +15,12 @@ export default withPWA({
         protocol: "http",
         hostname: "localhost",
       },
+      {
+        protocol: "https",
+        hostname: "donewithwork.pythonanywhere.com",
+        port: "",
+        pathname: "/**",
+      },
     ],
   },
 });
