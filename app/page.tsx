@@ -15,13 +15,16 @@ export default function Home() {
       const token = localStorage.getItem("accessToken");
       if (!token) return;
       try {
-        const res = await fetch(`${process.env.FLASK_ENDPOINT}/user/reports`, {
-          credentials: "include",
-          method: "GET",
-          headers: {
-            Authorization: "Bearer " + token,
-          },
-        }); //, {mode: 'no-cors'});\
+        const res = await fetch(
+          `${process.env.NEXT_PUBLIC_FLASK_ENDPOINT}/user/reports`,
+          {
+            credentials: "include",
+            method: "GET",
+            headers: {
+              Authorization: "Bearer " + token,
+            },
+          }
+        ); //, {mode: 'no-cors'});\
 
         const data = await res.json();
         console.log(data);

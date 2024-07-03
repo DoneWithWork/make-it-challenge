@@ -67,7 +67,7 @@ export default function Admin() {
             <div className="flex flex-col items-center">
               {report.image_filename && (
                 <Image
-                  src={`${process.env.FLASK_ENDPOINT}/static/uploads/${report.image_filename}`}
+                  src={`${process.env.NEXT_PUBLIC_FLASK_ENDPOINT}/static/uploads/${report.image_filename}`}
                   alt={report.title}
                   width="300"
                   height={"100"}

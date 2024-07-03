@@ -25,7 +25,7 @@ const SingleReport = ({
       }
       try {
         const res = await fetch(
-          `${process.env.FLASK_ENDPOINT}/report/${params.id}`,
+          `${process.env.NEXT_PUBLIC_FLASK_ENDPOINT}/report/${params.id}`,
           {
             headers: {
               Authorization: "Bearer " + token,

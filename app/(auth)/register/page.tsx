@@ -10,15 +10,18 @@ const Register: React.FC = () => {
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
-    const res = await fetch(`${process.env.FLASK_ENDPOINT}/register`, {
-      method: "POST",
-      // mode: 'no-cors',
-      credentials: "include",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ username, password }),
-    });
+    const res = await fetch(
+      `${process.env.NEXT_PUBLIC_FLASK_ENDPOINT}/register`,
+      {
+        method: "POST",
+        // mode: 'no-cors',
+        credentials: "include",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ username, password }),
+      }
+    );
     const data = await res.json();
     if (data.error) {
       setError(data.error);

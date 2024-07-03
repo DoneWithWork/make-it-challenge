@@ -52,7 +52,7 @@ const Report: React.FC = () => {
     formData.append("longitude", location?.longitude.toString() || "");
 
     const token = localStorage.getItem("accessToken");
-    fetch(`${process.env.FLASK_ENDPOINT}/submit`, {
+    fetch(`${process.env.NEXT_PUBLIC_FLASK_ENDPOINT}/submit`, {
       method: "POST",
       credentials: "include",
       body: formData,

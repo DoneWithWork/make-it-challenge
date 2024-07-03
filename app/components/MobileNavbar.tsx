@@ -67,7 +67,7 @@ const Navbar = () => {
 
   const logout = async () => {
     try {
-      await fetch(`${process.env.FLASK_ENDPOINT}/api/logout`, {
+      await fetch(`${process.env.NEXT_PUBLIC_FLASK_ENDPOINT}/api/logout`, {
         credentials: "include",
         method: "POST",
       });

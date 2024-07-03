@@ -46,7 +46,7 @@ export default function Profile() {
   };
   const [balance, setBalance] = useState<number>(0);
   async function mintNft() {
-    const res = await fetch(`${baseApiUrl}/mint`, {
+    const res = await fetch(`${process.env.NEXT_PUBLIC_FLASK_ENDPOINT}/mint`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
