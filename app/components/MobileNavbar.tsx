@@ -43,25 +43,6 @@ const Navbar = () => {
   const user = useUserStore((state: any) => state.user);
   const sub = useUserStore.subscribe(console.log);
   useEffect(() => {
-    // const fetchLoginStatus = async () => {
-    //   try {
-    //     const res = await fetch("http://localhost:8080/api/getIsLoggedIn", {
-    //       credentials: "include",
-    //     });
-    //     const data = await res.json();
-
-    //     updateLogin({
-    //       loggedIn: data.isLoggedIn,
-    //     });
-    //     updateUser({
-    //       admin: data.isAdmin,
-    //       username: data.user,
-    //     });
-    //   } catch (error) {
-    //     console.error("Failed to fetch login status:", error);
-    //   }
-    // };
-    // fetchLoginStatus();
     setIsMobile(isMobile);
   });
 

@@ -5,12 +5,17 @@ import { baseApiUrl } from "@/lib/utils";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import React, { useEffect, useState } from "react";
+import { isMobile } from "react-device-detect";
 
 export default function Home() {
+  const [Mobile, setIsMobile] = useState(false);
   const user = useUserStore((state: any) => state.user);
   const [reports, setReports] = useState<Report[]>([]);
   const router = useRouter();
   useEffect(() => {
+    useEffect(() => {
+      setIsMobile(isMobile);
+    });
     const fetchReports = async () => {
       const token = localStorage.getItem("accessToken");
       if (!token) return;
@@ -63,7 +68,7 @@ export default function Home() {
             <div className="flex flex-col items-center">
               {report.image_filename && (
                 <Image
-                  src={`${process.env.NEXT_PUBLIC_FLASK_ENDPOINT}/static/uploads/${report.image_filename}`}
+                  src={`${process.env.NEXT_PUBLIC_FLASK_ENDPOINT}static/uploads/${report.image_filename}`}
                   alt={report.title}
                   width="300"
                   height={"100"}
