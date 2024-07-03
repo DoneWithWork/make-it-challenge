@@ -8,6 +8,10 @@ export default withPWA({
   images: {
     remotePatterns: [
       {
+        protocol: "https",
+        hostname: "cdn.pixabay.com",
+      },
+      {
         protocol: "http",
         hostname: "localhost",
       },

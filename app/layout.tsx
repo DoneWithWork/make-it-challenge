@@ -66,7 +66,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body
-        className={`${inter.className} bg-gray-50 relative flex flex-col h-screen`}
+        className={`${inter.className} bg-gray-100 relative flex flex-col h-screen`}
       >
         <AppWalletProvider>
           <header>{/* <Navbar /> */}</header>

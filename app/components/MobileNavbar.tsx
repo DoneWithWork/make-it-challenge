@@ -118,9 +118,7 @@ const Navbar = () => {
       )}
     </nav>
   ) : (
-    <div>
-      <h1>On desktop</h1>
-    </div>
+    <div></div>
   );
 };
 
