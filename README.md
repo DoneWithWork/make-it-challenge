@@ -20,7 +20,7 @@ A mobile reporting service that rewards users
 
 - Sign up with any username and password.
 
-Please use the website on mobile for best experience.
+Please use the website on mobile to use the app.
 
 Desktop version (landing page)
 ![image](https://github.com/DoneWithWork/make-it-challenge/assets/72771758/3c0cacce-06db-4f9d-b638-f3670398b41a)
