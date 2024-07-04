@@ -1,8 +1,8 @@
 "use client";
 import { useRouter } from "next/navigation";
-import React, { useEffect, useState } from "react";
-import Camera from "react-html5-camera-photo";
-import "react-html5-camera-photo/build/css/index.css";
+import React, { useEffect, useState, useRef } from "react";
+import { Redo2, Camera } from "lucide-react";
+import Webcam from "react-webcam";
 
 interface Location {
   latitude: number;
@@ -11,49 +11,63 @@ interface Location {
 
 const Report: React.FC = () => {
   const [location, setLocation] = useState<Location | undefined>();
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [photoData, setPhotoData] = useState<string | null>(null);
-  const router = useRouter();
+  const [capturedImage, setCapturedImage] = useState<string | null>(null);
+  const webcamRef = useRef<Webcam>(null);
+  const [showCaptureButton, setShowCaptureButton] = useState(true);
 
+  const router = useRouter();
   useEffect(() => {
     if ("geolocation" in navigator) {
+      // Retrieve latitude & longitude coordinates from `navigator.geolocation` Web API
       navigator.geolocation.getCurrentPosition(({ coords }) => {
         const { latitude, longitude } = coords;
         setLocation({ latitude, longitude });
+        console.log("Latitude:", latitude, "Longitude:", longitude);
       });
     }
   }, []);
 
-  const handleTakePhoto = (dataUri: string) => {
-    setPhotoData(dataUri);
-  };
-
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files.length > 0) {
-      setSelectedFile(e.target.files[0]);
+  const captureImage = () => {
+    if (webcamRef.current) {
+      const imageSrc = webcamRef.current.getScreenshot();
+      setCapturedImage(imageSrc);
+      setShowCaptureButton(false); // Hide capture button after capturing image
     }
   };
 
-  const submitReport = async (event: React.FormEvent<HTMLFormElement>) => {
+  const retakeImage = () => {
+    setCapturedImage(null); // Reset captured image
+    setShowCaptureButton(true); // Show capture button again
+  };
+
+  const submitReport = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    if (!selectedFile && !photoData) {
-      console.error("No file or photo taken!");
+    if (!capturedImage) {
+      console.error("No image captured!");
       return;
     }
 
     const formData = new FormData(event.currentTarget);
-    if (selectedFile) {
-      formData.append("image", selectedFile);
-    } else if (photoData) {
-      const blob = await fetch(photoData).then((res) => res.blob());
-      formData.append("image", blob, "photo.jpg");
+
+    // Convert the data URL to a Blob
+    const dataUrl = capturedImage;
+    const byteString = atob(dataUrl.split(",")[1]);
+    const mimeString = dataUrl.split(",")[0].split(":")[1].split(";")[0];
+    const ab = new ArrayBuffer(byteString.length);
+    const ia = new Uint8Array(ab);
+    for (let i = 0; i < byteString.length; i++) {
+      ia[i] = byteString.charCodeAt(i);
     }
+    const blob = new Blob([ab], { type: mimeString });
+
+    formData.append("image", blob, "capturedImage.jpg");
     formData.append("latitude", location?.latitude.toString() || "");
     formData.append("longitude", location?.longitude.toString() || "");
 
     const token = localStorage.getItem("accessToken");
-    fetch(`${process.env.NEXT_PUBLIC_FLASK_ENDPOINT}/submit`, {
+    fetch(`${process.env.NEXT_PUBLIC_FLASK_ENDPOINT}submit`, {
       method: "POST",
+      // mode: 'no-cors',
       credentials: "include",
       body: formData,
       headers: {
@@ -61,20 +75,22 @@ const Report: React.FC = () => {
       },
     })
       .then((response) => response.json())
-      .then((data) => {
+      .then(async (data) => {
         console.log("Report submitted successfully:", data);
         router.push("/");
+        // Handle success response
       })
       .catch((error) => {
         console.error("Error submitting report:", error);
+        // Handle error response
       });
   };
 
   return (
-    <div className="max-w-screen   shadow-lg border-2 rounded-lg">
-      <div className="text-center ">
+    <div className="mx-auto w-full max-w-[400px] shadow-lg border-2 rounded-lg">
+      <div className="text-center px-2 py-1">
         <p className="text-xl font-semibold">Report</p>
-        <form onSubmit={submitReport}>
+        <form onSubmit={submitReport} className="overflow-y-scroll">
           <div>
             <label htmlFor="title">Title</label>
             <input type="text" id="title" name="title" required />
@@ -101,7 +117,11 @@ const Report: React.FC = () => {
           </div>
           <div>
             <label htmlFor="severity">Severity</label>
-            <input type="text" id="severity" name="severity" />
+            <select name="severity">
+              <option value="low">Low</option>
+              <option value="medium">Medium</option>
+              <option value="high">High</option>
+            </select>
           </div>
           <input
             type="hidden"
@@ -113,14 +133,55 @@ const Report: React.FC = () => {
             name="longitude"
             value={location?.longitude || ""}
           />
-          <div></div>
-          <div>
-            <input
-              type="file"
-              accept="image/*"
-              onChange={handleFileChange}
-              required
-            />
+          <div style={{ position: "relative", display: "inline-block" }}>
+            {capturedImage ? (
+              <div>
+                <img
+                  src={capturedImage}
+                  alt="Captured"
+                  style={{ height: "100px", width: "150px" }}
+                />
+                <button
+                  type="button"
+                  onClick={retakeImage}
+                  style={{
+                    position: "absolute",
+                    bottom: "10px",
+                    left: "50%",
+                    transform: "translateX(-50%)",
+                    background: "none",
+                    border: "none",
+                    cursor: "pointer",
+                  }}
+                >
+                  <Redo2 size={30} />
+                </button>
+              </div>
+            ) : (
+              <div>
+                <Webcam
+                  audio={false}
+                  ref={webcamRef}
+                  screenshotFormat="image/jpeg"
+                  style={{ height: "100px", width: "150px" }}
+                />
+                <button
+                  type="button"
+                  onClick={captureImage}
+                  style={{
+                    position: "absolute",
+                    bottom: "10px",
+                    left: "50%",
+                    transform: "translateX(-50%)",
+                    background: "none",
+                    border: "none",
+                    cursor: "pointer",
+                  }}
+                >
+                  <Camera size={30} />
+                </button>
+              </div>
+            )}
           </div>
           <div>
             <input type="submit" value="Submit" />

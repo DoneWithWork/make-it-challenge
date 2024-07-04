@@ -6,6 +6,11 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime
 from werkzeug.utils import secure_filename
 import os
+from solana_pay import PaymentRequest, SolanaPay
+from solders.pubkey import Pubkey
+
+
+import uuid
 from flask_migrate import Migrate
 from flask_cors import CORS  # Import CORS
 from flask_jwt_extended import JWTManager, create_access_token, jwt_required, get_jwt_identity, get_jwt
@@ -41,6 +46,10 @@ jwt = JWTManager(application)
 CORS(application, supports_credentials=True)
 
 
+COINS_TOKEN_ADDRESS = "CRU7an8xhciarBgF7pQo1orUbv6hxt3vXa2vZotPBDWE"
+DIAMONDS_TOKEN_ADDRESS = "LhPxyYRYyELFs45VvSNqvWZp994ZnDmXEqXqocTZdUg"
+
+
 
 # Define the User model
 class User(db.Model):
@@ -48,7 +57,10 @@ class User(db.Model):
     username = db.Column(db.String(150), nullable=False, unique=True)
     password = db.Column(db.String(150), nullable=False)
     is_admin = db.Column(db.Boolean, default=False)
-    points = db.Column(db.Integer, default=0)
+    coins = db.Column(db.Integer, default=10)
+    diamonds = db.Column(db.Integer, default=10)
+    wallet_address = db.Column(db.String(150), default="")
+
 # Define the Report model
 class Report(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -63,11 +75,13 @@ class Report(db.Model):
     status = db.Column(db.String(50), nullable=False, default='Pending')
     timestamp = db.Column(db.DateTime, default=datetime.utcnow)
     image_filename = db.Column(db.String(150), nullable=True)
-    user = db.Column(db.Integer)
+    user = db.Column(db.Integer, nullable=False)
 
 # Ensure the database tables are created
 with application.app_context():
     db.create_all()
+
+
 
 @application.route("/mint",methods=['POST'])
 @jwt_required()
@@ -136,6 +150,35 @@ def upload():
     return jsonify({"message": "Upload endpoint"})
 
 
+@application.route('/update/<field>', methods=['POST'])
+@jwt_required()
+def update(field):
+
+    user_id = get_jwt_identity()
+    user = User.query.filter_by(id=user_id).first()
+    if not user:
+        return jsonify({"error": "User not found"}), 404
+
+    try:
+        data = request.json
+        value = data.get('value')
+        print("value",value)
+        # Check if the field exists in the User class
+        if hasattr(User, field):
+            # Update the attribute dynamically
+            setattr(user, field, value)
+            print("user",user.wallet_address)
+        else:
+            return jsonify({"error": f"Invalid field: {field}"}), 400
+
+        db.session.commit()  # Commit the changes to the database
+
+        return jsonify({"message": f"Updated {field} successfully"}), 200
+
+    except Exception as e:
+        db.session.rollback()  # Rollback in case of any exception
+        return jsonify({"error": str(e)}), 500
+
 @application.route('/docs', methods=['GET'])
 def docs():
     print("Session contents:", session)
@@ -143,11 +186,32 @@ def docs():
         return jsonify({"error": "Unauthorized"}), 401
     return jsonify({"message": "Docs endpoint"})
 
+@application.route('/getuserfield/diamonds', methods=['GET'])
+@jwt_required()
+def getuserfield():
+    user_id = get_jwt_identity()
+    user = User.query.filter_by(id=user_id).first()
+    if not user:
+        return jsonify({"error": "User not found"}), 404
+    print("user", user.diamonds)
+    return jsonify({"diamonds": user.diamonds}) 
+
+@application.route('/getuserfield/coins', methods=['GET'])
+@jwt_required()
+def getuserfield2():
+    user_id = get_jwt_identity()
+    user = User.query.filter_by(id=user_id).first()
+    if not user:
+        return jsonify({"error": "User not found"}), 404
+  
+    print("user", user.to_dict())
+    return jsonify({"coins": user.coins}) 
 
 
 @application.route('/submit', methods=['POST'])
 @jwt_required()
 def submit():
+
     print("submit")
     user_id = get_jwt_identity()
     print("hi")
@@ -166,14 +230,36 @@ def submit():
     urgency = data.get('urgency')
     severity = data.get('severity')
     image = request.files.get('image')
-
+    user = user_id
     if not title or not description or not latitude or not longitude or not name or not image:
+        print(title, description, latitude, longitude, name, image)
         return jsonify({"error": "All fields are required"}), 400
-  
-    filename = secure_filename(image.filename)
-    print("filename:",filename)
-    image.save(os.path.join(application.config['UPLOAD_FOLDER'], filename))
+        
+    # Spam detection
+    # spam_result = spam_detector(description)[0]
+    # if spam_result['label'] == 'spam':
+    #     status = 'Potential Spam'
+    # else:
+    #     status = 'Pending'
 
+    # Get the original filename from the image object or generate a unique filename
+    original_filename = secure_filename(image.filename)
+    if original_filename.strip() == '':
+        original_filename = str(uuid.uuid4())  # Generate a random filename if original is empty
+    
+    # Split the filename and extension
+    filename, file_extension = os.path.splitext(original_filename)
+    
+    # Generate a unique filename
+    unique_filename = original_filename
+    counter = 1
+    while os.path.exists(os.path.join(application.config['UPLOAD_FOLDER'], unique_filename)):
+        unique_filename = f"{filename}_{counter}{file_extension}"
+        counter += 1
+    
+    # Save the image with the unique filename
+    image.save(os.path.join(application.config['UPLOAD_FOLDER'], unique_filename))
+    print("id", user_id)
     new_report = Report(
         title=title,
         description=description,
@@ -183,13 +269,12 @@ def submit():
         tags=tags,
         urgency=urgency,
         severity=severity,
-        image_filename=filename,
-        user=user.id
+        image_filename=unique_filename,
+        user=int(user_id)
     )
     db.session.add(new_report)
     db.session.commit()
     return jsonify({"message": "Report submitted successfully","success":True}), 201
-
 
 
 
@@ -303,6 +388,32 @@ def refresh_expiring_jwts(response):
 #     return jsonify({"message": "Report updated successfully"})
 
 
+from_wallet = 'GeKNdVFKAFuUhVti3648AgHxNYMxdccsrxAhgrTbztFf'
+@application.route('/swap', methods=['POST'])
+@jwt_required()
+def swap():
+    sPay = SolanaPay("https://api.testnet.solana.com")
+    user_id = get_jwt_identity()
+    user = User.query.filter_by(id=user_id).first()
+    if user is None:
+        return jsonify({"error": "User not found"}), 404
+    data = request.json
+    coins = int(data.get('coins', 0))
+    diamonds = int(data.get('diamonds', 0))
+    recieve_currency = 'WSOL' # Only option for now
+    if (coins > user.coins or diamonds > user.diamonds):
+        return jsonify({"error": "Not enough currency"}), 400
+    exchangeD = 1500000 // 1000000000
+    exchangeC = 150000 // 1000000000
+    nSol = diamonds * exchangeD + coins * exchangeC
+    payment_request = PaymentRequest(recipient=Pubkey(user.wallet_address),
+                                     amount=nSol,
+                                     reference=[
+                                         Pubkey(user.wallet_address)],
+                                     message="test")
+    trans = sPay.create_transfer_transaction(Pubkey(from_wallet), payment_request)
+    return jsonify({"message": "Payment successful", "new_coins_balance": user.coins, "new_diamonds_balance": user.diamonds}), 200
+
 @application.route('/user/reports', methods=['GET'])
 @jwt_required()
 def api_reports():
@@ -346,8 +457,15 @@ def report_to_dict(self):
         'image_filename': self.image_filename
     }
 
-
+def user_to_dict(self):
+    return {
+        'id': self.id,
+        'username': self.username,
+        'coins': self.coins,
+        'diamonds': self.diamonds,
+        'wallet_address': self.wallet_address
+    }
 Report.to_dict = report_to_dict
-
+User.to_dict = user_to_dict
 if __name__ == '__main__':
     application.run(debug=True, use_reloader=False, host='0.0.0.0', port=8080)

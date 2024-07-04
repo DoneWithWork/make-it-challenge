@@ -20,7 +20,7 @@ export default function Home() {
       if (!token) return;
       try {
         const res = await fetch(
-          `${process.env.NEXT_PUBLIC_FLASK_ENDPOINT}/user/reports`,
+          `${process.env.NEXT_PUBLIC_FLASK_ENDPOINT}user/reports`,
           {
             credentials: "include",
             method: "GET",

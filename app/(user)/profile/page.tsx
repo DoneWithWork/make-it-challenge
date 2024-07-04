@@ -1,75 +1,130 @@
 "use client";
 import { useUserStore } from "@/context/AuthContext";
+import { useRouter } from "next/navigation";
 import React, { useEffect, useState } from "react";
 import { WalletMultiButton } from "@solana/wallet-adapter-react-ui";
 import { useConnection, useWallet } from "@solana/wallet-adapter-react";
-import { LAMPORTS_PER_SOL } from "@solana/web3.js";
-import { useRouter } from "next/navigation";
+import { LAMPORTS_PER_SOL, Connection } from "@solana/web3.js";
+import { Coins, Diamond } from "lucide-react"; // Importing icons
 import { baseApiUrl } from "@/lib/utils";
-import { main } from "@/app/components/Umi";
-import { set } from "@metaplex-foundation/umi/serializers";
-import getTokenAccounts from "@/app/components/GetNft";
-import GetNFT from "@/app/components/GetNft";
+import axios from "axios";
+import Link from "next/link";
+
 export default function Profile() {
   const updateUser = useUserStore((state: any) => state.updateUser);
-  const [hex, setHex] = useState<string>("");
   const user = useUserStore((state: any) => state.user);
-  const { connection } = useConnection();
-  const { publicKey } = useWallet();
+  const connection = new Connection("https://api.testnet.solana.com");
+  const { publicKey, disconnect, connected } = useWallet();
+
+  const [balance, setBalance] = useState<number>(0);
+  const [coins, setCoins] = useState<number>(0); // Initialize coins state
+  const [diamonds, setDiamonds] = useState<number>(0); // Initialize diamonds state
+  const [isSwapModalOpen, setSwapModalOpen] = useState<boolean>(false);
+  const [error, setError] = useState<string | null>(null);
   const router = useRouter();
+
   useEffect(() => {
-    const token = localStorage.getItem("accessToken");
-    if (!token) {
-      updateUser({ username: "", accessToken: "" });
-      router.push("/login");
+    if (publicKey) {
+      connection.getBalance(publicKey).then(setBalance);
     }
-  }, []);
+  }, [connection, publicKey]);
+  const handleWalletSwitch = async () => {
+    await disconnect();
+    // Add any additional logic here if needed
+    window.location.reload(); // Reload the page to reset the wallet connection
+  };
+
   const getAirdropOnClick = async () => {
     try {
       if (!publicKey) {
-        throw new Error("Wallet is not Connected");
+        throw new Error("Wallet is not connected");
       }
-      const [latestBlockhash, signature] = await Promise.all([
-        connection.getLatestBlockhash(),
-        connection.requestAirdrop(publicKey, 1 * LAMPORTS_PER_SOL),
-      ]);
-      const sigResult = await connection.confirmTransaction(
-        { signature, ...latestBlockhash },
-        "confirmed"
+      const airdropSignature = await connection.requestAirdrop(
+        publicKey,
+        LAMPORTS_PER_SOL
       );
-      if (sigResult) {
-        alert("Airdrop was confirmed!");
-      }
+
+      await connection.confirmTransaction(airdropSignature, "confirmed");
+
+      const newBalance = await connection.getBalance(publicKey);
+      setBalance(newBalance);
+
+      alert("Airdrop was successful!");
     } catch (err) {
-      alert("You are Rate limited for Airdrop");
+      console.error(err);
+      alert("Airdrop failed. See console for details.");
     }
   };
-  const [balance, setBalance] = useState<number>(0);
-  async function mintNft() {
-    const res = await fetch(`${process.env.NEXT_PUBLIC_FLASK_ENDPOINT}/mint`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Bearer: "Bearer " + localStorage.getItem("accessToken"),
-      },
-      body: JSON.stringify({}),
-    });
-    const data = await res.json();
-    if (data.canMint == false) {
-      alert("You can't mint anymore");
-      return;
+  const updateWalletAddress = async () => {
+    try {
+      const token = localStorage.getItem("accessToken");
+      if (!token) {
+        router.push("/login");
+      }
+
+      const response = await axios.post(
+        `${baseApiUrl}/update/wallet_address`,
+        {
+          value: publicKey.toBase58(), // Assuming publicKey is a PublicKey object
+        },
+        {
+          headers: {
+            Authorization: "Bearer " + token,
+            "Content-Type": "application/json",
+          },
+          withCredentials: true,
+        }
+      );
+
+      console.log(response.data);
+      alert("Wallet address updated successfully!");
+    } catch (error) {
+      console.error("Error updating wallet address:", error);
+      alert("Failed to update wallet address. See console for details.");
     }
-    main();
-  }
+  };
   useEffect(() => {
-    if (publicKey) {
-      (async function getBalanceEvery10Seconds() {
-        const newBalance = await connection.getBalance(publicKey);
-        setBalance(newBalance / LAMPORTS_PER_SOL);
-        setTimeout(getBalanceEvery10Seconds, 10000);
-      })();
+    async function GetCoinsnDims() {
+      const token = localStorage.getItem("accessToken");
+      if (!token) {
+        router.push("/login");
+      }
+      try {
+        const res = await fetch(
+          `${process.env.NEXT_PUBLIC_FLASK_ENDPOINT}getuserfield/coins`,
+          {
+            headers: {
+              Authorization: "Bearer " + token,
+            },
+            credentials: "include",
+            method: "GET",
+          }
+        );
+        const data = await res.json();
+        setCoins(data.coins); // Update coins state
+        const res2 = await fetch(
+          `${process.env.NEXT_PUBLIC_FLASK_ENDPOINT}getuserfield/diamonds`,
+          {
+            headers: {
+              Authorization: "Bearer " + token,
+            },
+            credentials: "include",
+            method: "GET",
+          }
+        );
+        const data2 = await res2.json();
+        console.log(data2);
+        setDiamonds(data2.diamonds); // Update diamonds state
+        console.log(data, data2);
+        console.log(data.coins, data2.diamonds); // Logging correct values here
+      } catch (error) {
+        console.log(error);
+        alert("Error fetching coins and diamonds");
+      }
     }
-  }, [publicKey, connection, balance]);
+    GetCoinsnDims();
+  }, []);
+
   return (
     <div className="w-full h-[500px]">
       <div className="w-full px-5 py-2">
@@ -77,19 +132,50 @@ export default function Profile() {
         <p>
           Username: <span className="font-semibold">{user.username}</span>
         </p>
-
-        <div>
-          <WalletMultiButton style={{}} />
+        <div className="flex items-center">
+          <Coins className="mr-2" /> Coins: {coins}
         </div>
-        <div>
-          <button
-            className="bg-blue-300 px-2 py-2 rounded-xl m-5"
-            onClick={() => mintNft()}
-          >
-            Mint Your custom NFT
-          </button>
-          <button onClick={() => GetNFT()}>Check NFTs you own</button>
+        <div className="flex items-center">
+          <Diamond className="mr-2" /> Diamonds: {diamonds}
         </div>
+        <div className="mt-4">
+          <WalletMultiButton />
+        </div>
+        {connected ? (
+          <>
+            <button
+              onClick={getAirdropOnClick}
+              className="bg-blue-500 text-white px-4 py-2 rounded-xl mt-4"
+            >
+              Get Airdrop
+            </button>
+            <button
+              onClick={handleWalletSwitch}
+              className="bg-red-500 text-white px-4 py-2 rounded-xl mt-4"
+            >
+              Disconnect wallets
+            </button>
+            <Link
+              className="bg-blue-500 block text-white px-4 py-2 rounded-xl mt-4"
+              href="/profile/swap"
+            >
+              Swap your rewards
+            </Link>
+            {connected && (
+              <button
+                onClick={updateWalletAddress}
+                className="bg-blue-500 text-white px-4 py-2 rounded-xl mt-4"
+              >
+                Update Wallet Address
+              </button>
+            )}
+            {error && <p className="text-red-500 mt-2">{error}</p>}
+          </>
+        ) : (
+          <p className="text-red-500 mt-2">
+            Please connect your wallet to proceed.
+          </p>
+        )}
       </div>
     </div>
   );
