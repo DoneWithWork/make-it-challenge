@@ -63,9 +63,9 @@ export default function Profile() {
       }
 
       const response = await axios.post(
-        `${baseApiUrl}/update/wallet_address`,
+        `${process.env.NEXT_PUBLIC_FLASK_ENDPOINT}/update/wallet_address`,
         {
-          value: publicKey.toBase58(), // Assuming publicKey is a PublicKey object
+          value: publicKey?.toBase58(), // Assuming publicKey is a PublicKey object
         },
         {
           headers: {
